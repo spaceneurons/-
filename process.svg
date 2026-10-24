@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="660" viewBox="0 0 1100 660" role="img" aria-labelledby="title desc">
+  <title id="title">Схема процесса онлайн-записи в автосервис</title>
+  <desc id="desc">Клиент заполняет форму, система проверяет поля, рабочий день и прошедшее время, затем проверяет доступность слота. Если слот занят, клиент выбирает другое время. Если свободен, запись сохраняется и подтверждается.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#52645a"/></marker>
+    <style>
+      .label{font: 16px Arial,sans-serif;fill:#17211d;text-anchor:middle}
+      .small{font: 13px Arial,sans-serif;fill:#52645a;text-anchor:middle}
+      .node{fill:#fff;stroke:#bfcbbd;stroke-width:2}
+      .decision{fill:#f0f5e9;stroke:#80976b;stroke-width:2}
+      .line{fill:none;stroke:#52645a;stroke-width:2;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1100" height="660" rx="22" fill="#f4f5f1"/>
+  <text x="50" y="42" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2" fill="#718164">ОНЛАЙН-ЗАПИСЬ · ПРОЦЕСС</text>
+  <rect class="node" x="390" y="70" width="320" height="58" rx="29"/>
+  <text class="label" x="550" y="105">Клиент открывает форму</text>
+  <path class="line" d="M550 128 V160"/>
+  <rect class="node" x="355" y="160" width="390" height="70" rx="12"/>
+  <text class="label" x="550" y="188">Вводит имя, телефон, услугу,</text>
+  <text class="label" x="550" y="210">дату и время</text>
+  <path class="line" d="M550 230 V263"/>
+  <polygon class="decision" points="550,263 710,322 550,381 390,322"/>
+  <text class="label" x="550" y="316">Данные корректны?</text>
+  <text class="small" x="550" y="337">рабочий день и время не в прошлом</text>
+  <path class="line" d="M390 322 H220 V372"/>
+  <text class="small" x="292" y="309">Нет</text>
+  <rect class="node" x="80" y="372" width="280" height="62" rx="12"/>
+  <text class="label" x="220" y="398">Показать ошибку</text>
+  <text class="small" x="220" y="418">Клиент исправляет данные</text>
+  <path class="line" d="M220 372 V195 H355"/>
+  <text class="small" x="568" y="405">Да</text>
+  <path class="line" d="M550 381 V420"/>
+  <polygon class="decision" points="550,420 700,475 550,530 400,475"/>
+  <text class="label" x="550" y="470">Слот свободен?</text>
+  <text class="small" x="550" y="490">повторная проверка перед записью</text>
+  <path class="line" d="M400 475 H220 V505"/>
+  <text class="small" x="300" y="462">Нет</text>
+  <rect class="node" x="80" y="505" width="280" height="62" rx="12"/>
+  <text class="label" x="220" y="531">Показать, что слот занят</text>
+  <text class="small" x="220" y="551">Предложить выбрать другое время</text>
+  <path class="line" d="M220 505 V195 H355"/>
+  <text class="small" x="568" y="555">Да</text>
+  <path class="line" d="M550 530 V570"/>
+  <rect x="390" y="570" width="320" height="58" rx="12" fill="#c9f36b" stroke="#94b65a" stroke-width="2"/>
+  <text class="label" x="550" y="595">Сохранить запись</text>
+  <text class="small" x="550" y="615">Показать подтверждение и список</text>
+  <path class="line" d="M710 599 H835 V100 H710"/>
+  <text class="small" x="856" y="345" transform="rotate(-90 856 345)">Повторный выбор времени</text>
+</svg>
