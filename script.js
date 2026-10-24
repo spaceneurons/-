@@ -318,8 +318,8 @@
   }
 
   async function waitForBooking(booking) {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       await refreshBookings(false);
 
