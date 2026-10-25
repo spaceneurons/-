@@ -24,8 +24,10 @@
   const appointments = document.getElementById("appointments");
   const emptyState = document.getElementById("empty-state");
   const count = document.getElementById("booking-count");
+  const button = form.querySelector(".submit-button");
 
   let bookings = [];
+  let isSubmitting = false;
 
   const pad = n => String(n).padStart(2, "0");
 
@@ -55,9 +57,7 @@
   }
 
   function focusFirstError() {
-    const fields = ["name", "phone", "date", "time"];
-
-    for (const id of fields) {
+    for (const id of ["name", "phone", "date", "time"]) {
       const error = document.getElementById(`${id}-error`);
 
       if (error && error.textContent.trim()) {
@@ -151,20 +151,16 @@
     if (!date) {
       timeInput.add(new Option("Сначала выберите дату", ""));
       timeInput.disabled = true;
-
       document.getElementById("time-hint").textContent =
         "Сначала выберите дату визита.";
-
       return;
     }
 
     if (!isWorkingDay(date)) {
       timeInput.add(new Option("В этот день сервис закрыт", ""));
       timeInput.disabled = true;
-
       document.getElementById("time-hint").textContent =
         "Выберите дату с понедельника по субботу.";
-
       return;
     }
 
@@ -173,10 +169,8 @@
     if (!slots.length) {
       timeInput.add(new Option("Свободного времени нет", ""));
       timeInput.disabled = true;
-
       document.getElementById("time-hint").textContent =
         "На эту дату нет свободных часовых слотов.";
-
       return;
     }
 
@@ -228,7 +222,6 @@
     count.textContent = `${sorted.length} ${pluralBookings(sorted.length)}`;
     emptyState.hidden = sorted.length > 0;
 
-    // Телефоны посетителей не показываем в общем списке.
     appointments.innerHTML = sorted.map(item => `
       <article class="appointment">
         <div>
@@ -254,12 +247,16 @@
         `bookingCallback_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 
       const script = document.createElement("script");
+      let finished = false;
 
       const timeout = setTimeout(() => {
         finish(new Error("Не удалось получить ответ от Google Sheets."));
       }, 12000);
 
       function finish(error, result) {
+        if (finished) return;
+        finished = true;
+
         clearTimeout(timeout);
         delete window[callbackName];
         script.remove();
@@ -318,10 +315,15 @@
   }
 
   async function waitForBooking(booking) {
+    // Проверяем появление записи максимум 3 раза.
     for (let attempt = 0; attempt < 3; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (attempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, 700));
+      }
 
-      await refreshBookings(false);
+      const loaded = await refreshBookings(false);
+
+      if (!loaded) continue;
 
       const found = bookings.some(item =>
         item.date === booking.date &&
@@ -351,8 +353,6 @@
       valid = false;
     }
 
-    // Разрешены цифры, необязательный + в начале,
-    // пробелы, скобки и дефисы. Минимальной длины нет.
     const phonePattern = /^\+?[\d\s()-]+$/;
     const phoneDigits = phone.replace(/\D/g, "");
 
@@ -388,13 +388,8 @@
 
   serviceInput.addEventListener("change", updatePrice);
 
-  phoneInput.addEventListener("input", () => {
-    setError("phone", "");
-  });
-
-  nameInput.addEventListener("input", () => {
-    setError("name", "");
-  });
+  phoneInput.addEventListener("input", () => setError("phone", ""));
+  nameInput.addEventListener("input", () => setError("name", ""));
 
   dateInput.addEventListener("change", () => {
     hideAlert();
@@ -403,12 +398,13 @@
     updateTimeOptions();
   });
 
-  timeInput.addEventListener("change", () => {
-    setError("time", "");
-  });
+  timeInput.addEventListener("change", () => setError("time", ""));
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
+
+    // Защита от повторного нажатия.
+    if (isSubmitting) return;
 
     hideAlert();
 
@@ -419,26 +415,8 @@
 
     const date = dateInput.value;
     const time = timeInput.value;
-    const service = SERVICES[serviceInput.value];
-
-    // Перед отправкой обновляем список занятых слотов с сервера.
-    const loaded = await refreshBookings(false);
-
-    if (!loaded) {
-      showAlert(
-        "Не удалось проверить свободное время. Запись пока не отправлена.",
-        "failure"
-      );
-      return;
-    }
-
-    if (bookings.some(item => item.date === date && item.time === time)) {
-      setError("time", "Это время уже заняли. Выберите другое.");
-      updateTimeOptions();
-      showAlert("Выбранный слот уже занят.", "failure");
-      focusFirstError();
-      return;
-    }
+    const serviceCode = serviceInput.value;
+    const service = SERVICES[serviceCode];
 
     if (slotIsPast(date, time)) {
       setError("time", "Выберите время, которое ещё не наступило.");
@@ -450,16 +428,18 @@
     const booking = {
       name: nameInput.value.trim(),
       phone: phoneInput.value.trim(),
-      service: serviceInput.value,
+      service: serviceCode,
       date,
       time
     };
 
-    const button = form.querySelector(".submit-button");
+    // Блокируем кнопку сразу после проверки формы.
+    isSubmitting = true;
     button.disabled = true;
     button.textContent = "Сохраняем запись…";
 
     try {
+      // Отправляем запись в Google Apps Script.
       await fetch(API_URL, {
         method: "POST",
         mode: "no-cors",
@@ -469,11 +449,12 @@
         body: JSON.stringify(booking)
       });
 
+      // Проверяем, что запись действительно появилась в таблице.
       const confirmed = await waitForBooking(booking);
 
       if (!confirmed) {
         showAlert(
-          "Не удалось подтвердить запись в таблице. Проверьте вкладку «Записи» перед повторной отправкой.",
+          "Не удалось подтвердить запись в таблице. Проверьте лист «Записи» перед повторной отправкой, чтобы не создать дубль.",
           "failure"
         );
         return;
@@ -490,12 +471,14 @@
       updateTimeOptions();
 
       scrollToElement(alertBox);
+
     } catch (error) {
       showAlert(
         "Не удалось отправить запись. Проверьте подключение к интернету.",
         "failure"
       );
     } finally {
+      isSubmitting = false;
       button.disabled = false;
       button.innerHTML =
         'Подтвердить запись <span aria-hidden="true">↗</span>';
